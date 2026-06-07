@@ -1,5 +1,5 @@
 /**
- * Session storage utilities
+ * Local storage utilities
  */
 
 import { ChatMessage } from "@/types/widget-types";
@@ -14,7 +14,7 @@ export interface StoredSession {
 }
 
 /**
- * Save session to sessionStorage
+ * Save session to localStorage
  */
 export function saveSession(sessionId: string, messages: ChatMessage[]): void {
   try {
@@ -23,19 +23,19 @@ export function saveSession(sessionId: string, messages: ChatMessage[]): void {
       messages,
       timestamp: Date.now(),
     };
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   } catch (e) {
     console.warn("Failed to save session:", e);
   }
 }
 
 /**
- * Load session from sessionStorage
+ * Load session from localStorage
  * Returns null if session doesn't exist or has expired
  */
 export function loadSession(): StoredSession | null {
   try {
-    const data = sessionStorage.getItem(SESSION_KEY);
+    const data = localStorage.getItem(SESSION_KEY);
     if (!data) return null;
 
     const session: StoredSession = JSON.parse(data);
@@ -54,11 +54,11 @@ export function loadSession(): StoredSession | null {
 }
 
 /**
- * Clear session from sessionStorage
+ * Clear session from localStorage
  */
 export function clearSession(): void {
   try {
-    sessionStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(SESSION_KEY);
   } catch (e) {
     console.warn("Failed to clear session:", e);
   }
@@ -69,7 +69,7 @@ export function clearSession(): void {
  */
 export function hasSession(): boolean {
   try {
-    const data = sessionStorage.getItem(SESSION_KEY);
+    const data = localStorage.getItem(SESSION_KEY);
     if (!data) return false;
 
     const session: StoredSession = JSON.parse(data);
