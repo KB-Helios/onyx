@@ -114,9 +114,7 @@ export interface User {
   is_verified: boolean;
   role: UserRole;
   preferences: UserPreferences;
-  current_token_created_at?: Date;
-  current_token_expiry_length?: number;
-  oidc_expiry?: Date;
+  token_expires_at?: string;
   is_cloud_superuser?: boolean;
   team_name: string | null;
   is_anonymous_user?: boolean;
@@ -175,6 +173,7 @@ export type ValidStatuses =
   | "success"
   | "completed_with_errors"
   | "canceled"
+  | "interrupted"
   | "failed"
   | "in_progress"
   | "not_started";
@@ -235,9 +234,15 @@ export const INDEX_ATTEMPT_STAGES = [
   "CHUNKING",
   "CONTEXTUAL_RAG",
   "EMBEDDING",
+  "DOC_LOCK_ACQUIRE_WAIT",
+  "ENRICHMENT_PREP",
   "VECTOR_DB_WRITE",
   "POST_INDEX_DB_UPDATE",
+  "COORD_LOCK_ACQUIRE_WAIT",
   "COORDINATION_UPDATE",
+  "FINALIZATION",
+  "GC_COLLECT",
+  "BATCH_UNACCOUNTED",
   "BATCH_TOTAL",
 ] as const;
 
@@ -538,6 +543,43 @@ export interface UserGroup {
   is_up_to_date: boolean;
   is_up_for_deletion: boolean;
   is_default: boolean;
+  // Members may start incognito chats while the workspace availability
+  // setting is groups-only.
+  incognito_enabled: boolean;
+}
+
+// Mirrors `IncognitoAvailability` in backend/onyx/server/security/models.py.
+export type IncognitoAvailability = "off" | "everyone" | "groups";
+
+// Mirrors `IncognitoRecordMode` in backend/onyx/db/enums.py.
+export type IncognitoRecordMode = "full_history" | "usage_only";
+
+// Mirrors `SSRFProtectionLevel` in backend/onyx/server/security/models.py.
+export type SSRFProtectionLevel =
+  | "validate_all"
+  | "validate_llm"
+  | "allow_private_network"
+  | "disabled";
+
+// Read shape of GET /admin/security: effective, env-merged settings. Every
+// field is concrete, the backend never returns null here (see
+// `SecuritySettings` in backend/onyx/server/security/models.py).
+export interface SecuritySettings {
+  user_directory_admin_only: boolean;
+  incognito_availability: IncognitoAvailability;
+  incognito_record_mode: IncognitoRecordMode;
+  track_external_idp_expiry: boolean;
+  ssrf_protection_level: SSRFProtectionLevel;
+  mask_credential_prefix: boolean;
+  llm_custom_config_env_injection: boolean;
+  valid_email_domains: string[];
+  password_min_length: number;
+  password_max_length: number;
+  password_require_uppercase: boolean;
+  password_require_lowercase: boolean;
+  password_require_digit: boolean;
+  password_require_special_char: boolean;
+  password_auth_enabled: boolean;
 }
 
 export enum ValidSources {
@@ -565,6 +607,7 @@ export enum ValidSources {
   UserFile = "user_file",
   GoogleSites = "google_sites",
   Loopio = "loopio",
+  Box = "box",
   Dropbox = "dropbox",
   Discord = "discord",
   Salesforce = "salesforce",
@@ -594,6 +637,9 @@ export enum ValidSources {
   Imap = "imap",
   Bitbucket = "bitbucket",
   TestRail = "testrail",
+  Braintrust = "braintrust",
+  Lumapps = "lumapps",
+  Canvas = "canvas",
 
   // Craft-specific sources
   CraftFile = "craft_file",
@@ -621,6 +667,8 @@ export const validAutoSyncSources = [
   ValidSources.GitHub,
   ValidSources.Sharepoint,
   ValidSources.Teams,
+  ValidSources.Canvas,
+  ValidSources.Box,
 ] as const;
 
 // Create a type from the array elements

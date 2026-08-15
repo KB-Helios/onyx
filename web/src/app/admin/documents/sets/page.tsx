@@ -1,6 +1,6 @@
 "use client";
 
-import { ThreeDotsLoader } from "@/components/Loading";
+import { PageLoader } from "@opal/layouts";
 import { PageSelector } from "@/components/PageSelector";
 import { SvgInfo, SvgPlusCircle } from "@opal/icons";
 import {
@@ -19,8 +19,7 @@ import { useState } from "react";
 import { useDocumentSets } from "./hooks";
 import { ConnectorTitle } from "@/components/admin/connectors/ConnectorTitle";
 import { deleteDocumentSet } from "./lib";
-import { toast } from "@/hooks/useToast";
-import { SettingsLayouts } from "@opal/layouts";
+import { SettingsLayouts, toast } from "@opal/layouts";
 import { ADMIN_ROUTES } from "@/lib/admin-routes";
 import {
   FiAlertTriangle,
@@ -124,21 +123,24 @@ const EditRow = ({
             : undefined
         }
       >
-        <div
+        <button
+          type="button"
           className={`
               text-text-darker font-medium my-auto p-1 hover:bg-accent-background flex items-center select-none
               ${documentSet.is_up_to_date ? "cursor-pointer" : "cursor-default"}
             `}
           style={{ wordBreak: "normal", overflowWrap: "break-word" }}
+          // Not `disabled`: a disabled button fires no pointer events, which
+          // would hide the tooltip that explains why it cannot be used.
+          aria-disabled={!documentSet.is_up_to_date}
           onClick={() => {
-            if (documentSet.is_up_to_date) {
-              router.push(`/admin/documents/sets/${documentSet.id}`);
-            }
+            if (!documentSet.is_up_to_date) return;
+            router.push(`/admin/documents/sets/${documentSet.id}`);
           }}
         >
           <FiEdit2 className="mr-2 shrink-0" />
           <span className="font-medium">{documentSet.name}</span>
-        </div>
+        </button>
       </Tooltip>
     </div>
   );
@@ -366,7 +368,7 @@ function Main() {
   if (isDocumentSetsLoading || isEditableDocumentSetsLoading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
-        <ThreeDotsLoader />
+        <PageLoader />
       </div>
     );
   }

@@ -8,7 +8,7 @@ import {
 import { useField } from "formik";
 import { AutoSyncOptions } from "./AutoSyncOptions";
 import { useTierAtLeast } from "@/hooks/useTierAtLeast";
-import { Tier } from "@/interfaces/settings";
+import { Tier } from "@/lib/settings/types";
 import { useEffect, useMemo } from "react";
 import { Credential } from "@/lib/connectors/credentials";
 import { credentialTemplates } from "@/lib/connectors/credentials";
@@ -110,7 +110,7 @@ export function AccessTypeForm({
   return (
     <>
       <div>
-        <label className="text-text-950 font-medium">Document Access</label>
+        <p className="text-text-950 font-medium">Document Access</p>
         <p className="text-sm text-text-500">
           Control who has access to the documents indexed by this connector.
         </p>

@@ -1,4 +1,9 @@
 # =============================================================================
+# THIS FILE IS GENERATED - DO NOT EDIT DIRECTLY
+# Source of truth: deployment/docker_compose/docker-compose.template.yml
+# Regenerate:      ods generate-compose --write
+# =============================================================================
+# =============================================================================
 # ONYX DOCKER COMPOSE
 # =============================================================================
 # This is the default configuration for Onyx. This file is fairly configurable,
@@ -12,6 +17,7 @@
 # 1. SECURITY HARDENING:
 #    - Remove all port exposures except nginx (80/443)
 #    - Comment out ports for: api_server, relational_db, cache, minio
+#    - Set strong MinIO/S3 credentials (MINIO_ROOT_* + S3_AWS_*), not minioadmin
 #
 # 2. SSL/TLS SETUP:
 #    - Uncomment the certbot service (see below)
@@ -22,7 +28,8 @@
 #    - Replace env_file with explicit environment variables
 #
 # 4. AUTHENTICATION:
-#    - Select an authentication method like Basic, Google OAuth, OIDC, or SAML
+#    - Email/password auth works out of the box. SSO (Google, OIDC, SAML) is
+#      configured from the admin panel: Admin Panel > Organization > SSO Providers
 #
 # 5. CA CERTIFICATES:
 #    - Uncomment custom CA certificate volumes if needed
@@ -42,8 +49,9 @@ services:
     build:
       context: ../../backend
       dockerfile: Dockerfile
-      args:
-        - ENABLE_CRAFT=${ENABLE_CRAFT:-false}
+      # The shipped image; the Dockerfile's default (last) stage is the dev variant
+      # with debugging tools (published with a -dev tag suffix).
+      target: runtime
     command: >
       /bin/sh -c "alembic upgrade head &&
       echo \"Starting Onyx Api Server\" &&
@@ -123,8 +131,9 @@ services:
     build:
       context: ../../backend
       dockerfile: Dockerfile
-      args:
-        - ENABLE_CRAFT=${ENABLE_CRAFT:-false}
+      # The shipped image; the Dockerfile's default (last) stage is the dev variant
+      # with debugging tools (published with a -dev tag suffix).
+      target: runtime
     command: >
       /bin/sh -c "
       if [ -f /etc/ssl/certs/custom-ca.crt ]; then
@@ -210,6 +219,11 @@ services:
     restart: unless-stopped
     environment:
       - INTERNAL_URL=${INTERNAL_URL:-http://api_server:8080}
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "6"
     healthcheck:
       test:
         [
@@ -229,6 +243,7 @@ services:
   #   build:
   #     context: ../../backend
   #     dockerfile: Dockerfile
+  #     target: runtime
   #   command: >
   #     /bin/sh -c "if [ \"${MCP_SERVER_ENABLED:-}\" != \"True\" ] && [ \"${MCP_SERVER_ENABLED:-}\" != \"true\" ]; then
   #       echo 'MCP server is disabled (MCP_SERVER_ENABLED=false), skipping...';
@@ -277,13 +292,6 @@ services:
     #         - driver: nvidia
     #           count: all
     #           capabilities: [gpu]
-    command: >
-      /bin/sh -c "if [ \"${DISABLE_MODEL_SERVER:-}\" = \"True\" ] || [ \"${DISABLE_MODEL_SERVER:-}\" = \"true\" ]; then
-        echo 'Skipping service...';
-        exit 0;
-      else
-        exec uvicorn model_server.main:app --host 0.0.0.0 --port 9000;
-      fi"
     env_file:
       - path: .env
         required: false
@@ -327,13 +335,6 @@ services:
     #         - driver: nvidia
     #           count: all
     #           capabilities: [gpu]
-    command: >
-      /bin/sh -c "if [ \"${DISABLE_MODEL_SERVER:-}\" = \"True\" ] || [ \"${DISABLE_MODEL_SERVER:-}\" = \"true\" ]; then
-        echo 'Skipping service...';
-        exit 0;
-      else
-        exec uvicorn model_server.main:app --host 0.0.0.0 --port 9000;
-      fi"
     env_file:
       - path: .env
         required: false
@@ -389,6 +390,11 @@ services:
       retries: 5
     volumes:
       - db_volume:/var/lib/postgresql/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "6"
 
   opensearch:
     image: ${BASE_IMAGE_REGISTRY:-docker.io}/opensearchproject/opensearch:3.6.0
